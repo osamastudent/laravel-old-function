@@ -1,0 +1,125 @@
+<select name="postcategory_id"   class="form-control ">
+<option value="">--select category--</option>
+@foreach(\App\Models\postcategory::all() as $category)
+<option value="{{$category->id}}"
+{{old('postcategory_id')==$category->id ? 'selected' : ''}}>{{$category->pc_name}}</option>
+@endforeach
+</select >
+@error('postcategory_id')
+{{$message}}
+@enderror
+
+****************UPDATE FORM *********************
+
+<form action="/admin/{{$posttt->id}}" method="post" enctype="multipart/form-data">
+    
+    @csrf               
+    <!-- @method('PATCH') -->
+   <input type="text" name="post_name" value="{{old('post_name', $posttt->post_name)}} " class="form-control">
+   @error('post_name')
+{{$message}}
+@enderror
+   <br>
+   
+   <input type="file" name="thumbnail" :value="{{old('thumbnail',$posttt->thumbnail)}}" class="form-control pb-4 ">
+    @error('thumbnail')
+{{$message}}
+@enderror
+   <br>
+   <img src="{{asset('storage/'.$posttt->thumbnail)}}" alt="imgg" class="rounded-xl">
+
+
+
+<input type="text" name="post_body" value="{{old('post_body',$posttt->post_body)}}" class="form-control "> <br>
+@error('post_body')
+{{$message}}
+@enderror
+<select name="postcategory_id"   class="form-control ">
+<option value="">--select category--</option>
+@foreach(\App\Models\postcategory::all() as $category)
+<option value="{{$category->id}}"
+{{old('postcategory_id',$posttt-> postcategory_id)==$category->id ? 'selected' : ''}}>{{$category->pc_name}}</option>
+@endforeach
+</select >
+@error('postcategory_id')
+{{$message}}
+@enderror
+<br>
+<input type="submit" value="Update" class="form-control mb-3 btn btn-primary mt-2">
+</form>
+
+************************************************controler**********************************************
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+
+use App\Models\post;
+use Illuminate\Validation\Rule;
+use App\Models\postcategory;
+
+class admincontroller extends Controller
+{
+public function createpost(){
+return view('admin.create');
+}
+
+public function storepost(){
+   /* ddd(request()->file('images')); */
+
+   $attributes=request()->validate([
+    
+    'post_name'=>['required',Rule::unique('posts','post_name')],
+    'post_body'=>'required',
+    'thumbnail'=>'required|image',
+    'postcategory_id'=>['required',Rule::exists('postcategories','id')]
+    ],[
+    'post_name'=>'must beee'
+    ]);
+    
+    $attributes['user_id']=auth()->id();
+    $attributes['thumbnail']=request()->file('thumbnail')->store('thumbnails');
+    $p=post::create($attributes);
+if($p){
+    echo "okkkkkk";
+}
+else{
+
+    return "not aded";
+}
+
+}
+
+public function showpost(){
+$post=post::all();
+return view('admin.showpost',compact('post'));
+}
+
+public function edit(post $posttt){
+
+return view('admin.update',['posttt'=>$posttt]);
+}
+
+public function updatestore(post $posttt){
+$attributes=request()->validate([
+'post_name' =>'required',Rule::unique('posts','post_name')->ignore($posttt->id),
+'thumbnail'=>'image',
+'post_body'=>'required',
+'postcategory_id'=>['required',Rule::exists('postcategories','id')]
+]);
+if(isset($attributes['thumbnail'])){
+$attributes['thumbnail']=request()->file('thumbnail')->store('thumbnails');
+}
+$posttt->update($attributes);
+return "done";
+}
+
+function delete(post $posttt){
+$posttt->delete();
+return "delete";
+}
+
+}
